@@ -4,6 +4,7 @@ import com.datastax.spark.connector.cql.CassandraConnector;
 import com.datastax.spark.connector.japi.CassandraRow;
 import com.datastax.spark.connector.japi.RDDAndDStreamCommonJavaFunctions;
 import com.datastax.spark.connector.japi.RDDJavaFunctions;
+import com.google.common.base.Optional;
 import org.apache.spark.SparkConf;
 import org.apache.spark.api.java.JavaPairRDD;
 import org.apache.spark.api.java.JavaRDD;
@@ -140,6 +141,29 @@ public class JavaDemo implements Serializable {
     }
 
     private void showResults(JavaSparkContext sc) {
+        JavaPairRDD<Integer, Summary> summariesRDD = javaFunctions(sc)
+                .cassandraTable("java_api", "summaries", mapRowTo(Summary.class))
+                .keyBy(new Function<Summary, Integer>() {
+                    @Override
+                    public Integer call(Summary summary) throws Exception {
+                        return summary.getProduct();
+                    }
+                });
+
+        JavaPairRDD<Integer, Product> productsRDD = javaFunctions(sc)
+                .cassandraTable("java_api", "products", mapRowTo(Product.class))
+                .keyBy(new Function<Product, Integer>() {
+                    @Override
+                    public Integer call(Product product) throws Exception {
+                        return product.getId();
+                    }
+                });
+
+        List<Tuple2<Product, Optional<Summary>>> results = productsRDD.leftOuterJoin(summariesRDD).values().toArray();
+
+        for (Tuple2<Product, Optional<Summary>> result : results) {
+            System.out.println(result);
+        }
     }
 
     public static void main(String[] args) {
