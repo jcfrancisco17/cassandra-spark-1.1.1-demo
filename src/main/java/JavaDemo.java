@@ -10,6 +10,8 @@ import org.apache.spark.api.java.JavaRDD;
 import org.apache.spark.api.java.JavaSparkContext;
 import org.apache.spark.api.java.function.FlatMapFunction;
 import org.apache.spark.api.java.function.Function;
+import org.apache.spark.api.java.function.Function2;
+import org.apache.spark.api.java.function.PairFlatMapFunction;
 import scala.Tuple2;
 
 import java.io.Serializable;
@@ -88,6 +90,53 @@ public class JavaDemo implements Serializable {
     }
 
     private void compute(JavaSparkContext sc) {
+        JavaPairRDD<Integer, Product> productsRDD = javaFunctions(sc)
+                .cassandraTable("java_api", "products", mapRowTo(Product.class))
+                .keyBy(new Function<Product, Integer>() {
+                    @Override
+                    public Integer call(Product product) throws Exception {
+                        return product.getId();
+                    }
+                });
+
+        JavaPairRDD<Integer, Sale> salesRDD = javaFunctions(sc)
+                .cassandraTable("java_api", "sales", mapRowTo(Sale.class))
+                .keyBy(new Function<Sale, Integer>() {
+                    @Override
+                    public Integer call(Sale sale) throws Exception {
+                        return sale.getProduct();
+                    }
+                });
+
+        JavaPairRDD<Integer, Tuple2<Sale, Product>> joinedRDD = salesRDD.join(productsRDD);
+
+        JavaPairRDD<Integer, BigDecimal> allSalesRDD = joinedRDD.flatMapToPair(new PairFlatMapFunction<Tuple2<Integer, Tuple2<Sale, Product>>, Integer, BigDecimal>() {
+            @Override
+            public Iterable<Tuple2<Integer, BigDecimal>> call(Tuple2<Integer, Tuple2<Sale, Product>> input) throws Exception {
+                Tuple2<Sale, Product> saleWithProduct = input._2();
+                List<Tuple2<Integer, BigDecimal>> allSales = new ArrayList<>(saleWithProduct._2().getParents().size() + 1);
+                allSales.add(new Tuple2<>(saleWithProduct._1().getProduct(), saleWithProduct._1().getPrice()));
+                for (Integer parentProduct : saleWithProduct._2().getParents()) {
+                    allSales.add(new Tuple2<>(parentProduct, saleWithProduct._1().getPrice()));
+                }
+                return allSales;
+            }
+        });
+
+
+        JavaRDD<Summary> summariesRDD = allSalesRDD.reduceByKey(new Function2<BigDecimal, BigDecimal, BigDecimal>() {
+            @Override
+            public BigDecimal call(BigDecimal v1, BigDecimal v2) throws Exception {
+                return v1.add(v2);
+            }
+        }).map(new Function<Tuple2<Integer, BigDecimal>, Summary>() {
+            @Override
+            public Summary call(Tuple2<Integer, BigDecimal> input) throws Exception {
+                return new Summary(input._1(), input._2);
+            }
+        });
+
+        javaFunctions(summariesRDD).writerBuilder("java_api", "summaries", mapToRow(Summary.class)).saveToCassandra();
     }
 
     private void showResults(JavaSparkContext sc) {
