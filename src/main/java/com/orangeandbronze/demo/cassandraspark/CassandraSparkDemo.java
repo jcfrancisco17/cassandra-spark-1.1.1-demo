@@ -1,4 +1,4 @@
-package com.orangeandbronze.demo.spark;
+package com.orangeandbronze.demo.cassandraspark;
 
 import com.datastax.driver.core.Session;
 import com.datastax.spark.connector.cql.CassandraConnector;
@@ -26,10 +26,10 @@ import static com.datastax.spark.connector.japi.CassandraJavaUtil.*;
  *
  * http://www.datastax.com/dev/blog/accessing-cassandra-from-spark-in-java
  */
-public class JavaDemo implements Serializable {
+public class CassandraSparkDemo implements Serializable {
     private transient SparkConf conf;
 
-    private JavaDemo(SparkConf conf) {
+    private CassandraSparkDemo(SparkConf conf) {
         this.conf = conf;
     }
 
@@ -184,7 +184,7 @@ public class JavaDemo implements Serializable {
         //Set a configuration variable.
         conf.set("spark.cassandra.connection.host", args[1]);
 
-        JavaDemo app = new JavaDemo(conf);
+        CassandraSparkDemo app = new CassandraSparkDemo(conf);
         app.run();
     }
 
