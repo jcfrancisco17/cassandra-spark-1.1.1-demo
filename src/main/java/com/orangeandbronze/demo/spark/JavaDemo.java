@@ -1,3 +1,5 @@
+package com.orangeandbronze.demo.spark;
+
 import com.datastax.driver.core.Session;
 import com.datastax.spark.connector.cql.CassandraConnector;
 import com.google.common.base.Optional;
