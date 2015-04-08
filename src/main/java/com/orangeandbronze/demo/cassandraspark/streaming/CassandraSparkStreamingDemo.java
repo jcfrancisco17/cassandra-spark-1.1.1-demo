@@ -50,11 +50,11 @@ public class CassandraSparkStreamingDemo {
 
     private void run() {
         JavaSparkContext sparkContext = new JavaSparkContext(conf);
-        generateDate(sparkContext);
+        generateData(sparkContext);
         sparkContext.stop();
     }
 
-    private void generateDate(JavaSparkContext sparkContext) {
+    private void generateData(JavaSparkContext sparkContext) {
         CassandraConnector connector = CassandraConnector.apply(sparkContext.getConf());
 
         try (Session session = connector.openSession()) {
