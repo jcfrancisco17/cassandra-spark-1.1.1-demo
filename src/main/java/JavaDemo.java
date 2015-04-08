@@ -1,9 +1,5 @@
 import com.datastax.driver.core.Session;
 import com.datastax.spark.connector.cql.CassandraConnector;
-
-import com.datastax.spark.connector.japi.CassandraRow;
-import com.datastax.spark.connector.japi.RDDAndDStreamCommonJavaFunctions;
-import com.datastax.spark.connector.japi.RDDJavaFunctions;
 import com.google.common.base.Optional;
 import org.apache.spark.SparkConf;
 import org.apache.spark.api.java.JavaPairRDD;
@@ -25,6 +21,8 @@ import static com.datastax.spark.connector.japi.CassandraJavaUtil.*;
 
 /**
  * Created by JC on 4/7/15.
+ *
+ * http://www.datastax.com/dev/blog/accessing-cassandra-from-spark-in-java
  */
 public class JavaDemo implements Serializable {
     private transient SparkConf conf;
@@ -87,7 +85,8 @@ public class JavaDemo implements Serializable {
             }
         });
 
-        javaFunctions(salesRDD).writerBuilder("java_api", "sales", mapToRow(Sale.class)).saveToCassandra();;
+        javaFunctions(salesRDD).writerBuilder("java_api", "sales", mapToRow(Sale.class)).saveToCassandra();
+
     }
 
     private void compute(JavaSparkContext sc) {
@@ -174,7 +173,13 @@ public class JavaDemo implements Serializable {
 
         SparkConf conf = new SparkConf();
         conf.setAppName("Java API Demo");
+
+        //The master URL to connect to, such as "local" to run locally with one thread,
+        // "local[4]" to run locally with 4 cores,
+        // or "spark://master:7077" to run on a Spark standalone cluster.
         conf.setMaster(args[0]);
+
+        //Set a configuration variable.
         conf.set("spark.cassandra.connection.host", args[1]);
 
         JavaDemo app = new JavaDemo(conf);
@@ -259,7 +264,5 @@ public class JavaDemo implements Serializable {
             return MessageFormat.format("Summary'{'product={0}, summary={1}'}'", product, summary);
         }
     }
-
-
 
 }
